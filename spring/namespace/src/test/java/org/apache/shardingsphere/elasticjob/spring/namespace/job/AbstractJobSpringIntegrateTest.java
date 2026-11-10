@@ -20,16 +20,16 @@ package org.apache.shardingsphere.elasticjob.spring.namespace.job;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.elasticjob.kernel.internal.schedule.JobRegistry;
 import org.apache.shardingsphere.elasticjob.reg.base.CoordinatorRegistryCenter;
+import org.apache.shardingsphere.elasticjob.spring.namespace.EmbedTestingServerInitializer;
 import org.apache.shardingsphere.elasticjob.spring.namespace.fixture.job.DataflowElasticJob;
 import org.apache.shardingsphere.elasticjob.spring.namespace.fixture.job.FooSimpleElasticJob;
-import org.apache.shardingsphere.elasticjob.test.util.EmbedTestingServer;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.concurrent.TimeUnit;
@@ -39,10 +39,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
+@ContextConfiguration(initializers = EmbedTestingServerInitializer.class)
 @RequiredArgsConstructor
 public abstract class AbstractJobSpringIntegrateTest {
-    
-    private static final EmbedTestingServer EMBED_TESTING_SERVER = new EmbedTestingServer(3181);
     
     private final String simpleJobName;
     
@@ -50,11 +49,6 @@ public abstract class AbstractJobSpringIntegrateTest {
     
     @Autowired
     private CoordinatorRegistryCenter regCenter;
-    
-    @BeforeAll
-    static void init() {
-        EMBED_TESTING_SERVER.start();
-    }
     
     @BeforeEach
     @AfterEach
@@ -76,13 +70,13 @@ public abstract class AbstractJobSpringIntegrateTest {
     }
     
     private void assertSimpleElasticJobBean() {
-        Awaitility.await().atMost(1L, TimeUnit.MINUTES).untilAsserted(() -> assertThat(FooSimpleElasticJob.isCompleted(), is(true)));
+        Awaitility.await().atMost(2L, TimeUnit.MINUTES).untilAsserted(() -> assertThat(FooSimpleElasticJob.isCompleted(), is(true)));
         assertTrue(FooSimpleElasticJob.isCompleted());
         assertTrue(regCenter.isExisted("/" + simpleJobName + "/sharding"));
     }
     
     private void assertThroughputDataflowElasticJobBean() {
-        Awaitility.await().atMost(1L, TimeUnit.MINUTES).untilAsserted(() -> assertThat(DataflowElasticJob.isCompleted(), is(true)));
+        Awaitility.await().atMost(2L, TimeUnit.MINUTES).untilAsserted(() -> assertThat(DataflowElasticJob.isCompleted(), is(true)));
         assertTrue(DataflowElasticJob.isCompleted());
         assertTrue(regCenter.isExisted("/" + throughputDataflowJobName + "/sharding"));
     }

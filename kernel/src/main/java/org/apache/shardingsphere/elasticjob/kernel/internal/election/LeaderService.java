@@ -19,7 +19,13 @@ package org.apache.shardingsphere.elasticjob.kernel.internal.election;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.elasticjob.api.JobConfiguration;
+import org.apache.shardingsphere.elasticjob.kernel.infra.exception.JobConfigurationException;
+import org.apache.shardingsphere.elasticjob.kernel.infra.util.BoundedWaitGuard;
+import org.apache.shardingsphere.elasticjob.kernel.infra.util.WaitTimeoutNotifier;
+import org.apache.shardingsphere.elasticjob.kernel.internal.config.ConfigurationService;
 import org.apache.shardingsphere.elasticjob.kernel.internal.schedule.JobRegistry;
+import org.apache.shardingsphere.elasticjob.kernel.internal.sharding.JobInstance;
 import org.apache.shardingsphere.elasticjob.kernel.internal.server.ServerService;
 import org.apache.shardingsphere.elasticjob.kernel.internal.storage.JobNodeStorage;
 import org.apache.shardingsphere.elasticjob.reg.base.LeaderExecutionCallback;
@@ -38,10 +44,13 @@ public final class LeaderService {
     
     private final JobNodeStorage jobNodeStorage;
     
+    private final ConfigurationService configService;
+    
     public LeaderService(final CoordinatorRegistryCenter regCenter, final String jobName) {
         this.jobName = jobName;
         jobNodeStorage = new JobNodeStorage(regCenter, jobName);
         serverService = new ServerService(regCenter, jobName);
+        configService = new ConfigurationService(regCenter, jobName);
     }
     
     /**
@@ -55,15 +64,29 @@ public final class LeaderService {
     
     /**
      * Judge current server is leader or not.
-     * 
+     *
      * <p>
      * If leader is electing, this method will block until leader elected success.
      * </p>
-     * 
+     *
      * @return current server is leader or not
      */
     public boolean isLeaderUntilBlock() {
+        JobConfiguration jobConfig = null;
+        BoundedWaitGuard waitGuard = null;
         while (!hasLeader() && serverService.hasAvailableServers()) {
+            if (null == waitGuard) {
+                try {
+                    jobConfig = configService.load(true);
+                } catch (final JobConfigurationException ex) {
+                    return isLeader();
+                }
+                waitGuard = BoundedWaitGuard.start(jobConfig.getMaxWaitMillis());
+            }
+            if (waitGuard.shouldGiveUp()) {
+                WaitTimeoutNotifier.notifyTimeout(jobName, jobConfig, waitGuard.isInterrupted() ? "leader election to complete (interrupted)" : "leader election to complete");
+                return isLeader();
+            }
             log.info("Leader is electing, waiting for {} ms", 100);
             BlockUtils.waitingShortTime();
             if (!JobRegistry.getInstance().isShutdown(jobName) && serverService.isAvailableServer(JobRegistry.getInstance().getJobInstance(jobName).getServerIp())) {
@@ -98,14 +121,24 @@ public final class LeaderService {
         jobNodeStorage.removeJobNodeIfExisted(LeaderNode.INSTANCE);
     }
     
+    /**
+     * Callback executed while holding the leader latch.
+     *
+     * <p>
+     * The job instance is read before the leader check, and the callback returns without writing when it is absent,
+     * because the instance is removed from the registry before this callback is torn down during shutdown.
+     * </p>
+     */
     @RequiredArgsConstructor
     class LeaderElectionExecutionCallback implements LeaderExecutionCallback {
         
         @Override
         public void execute() {
-            if (!hasLeader()) {
-                jobNodeStorage.fillEphemeralJobNode(LeaderNode.INSTANCE, JobRegistry.getInstance().getJobInstance(jobName).getJobInstanceId());
+            JobInstance jobInstance = JobRegistry.getInstance().getJobInstance(jobName);
+            if (null == jobInstance || hasLeader()) {
+                return;
             }
+            jobNodeStorage.fillEphemeralJobNode(LeaderNode.INSTANCE, jobInstance.getJobInstanceId());
         }
     }
 }

@@ -66,7 +66,7 @@ public final class JobStatisticsAPIImpl implements JobStatisticsAPI {
         JobNodePath jobNodePath = new JobNodePath(jobName);
         JobBriefInfo result = new JobBriefInfo();
         result.setJobName(jobName);
-        String jobConfigYaml = regCenter.get(jobNodePath.getConfigNodePath());
+        String jobConfigYaml = regCenter.getDirectly(jobNodePath.getConfigNodePath());
         if (null == jobConfigYaml) {
             return null;
         }
@@ -98,7 +98,7 @@ public final class JobStatisticsAPIImpl implements JobStatisticsAPI {
         List<String> serversPath = regCenter.getChildrenKeys(jobNodePath.getServerNodePath());
         int disabledServerCount = 0;
         for (String each : serversPath) {
-            if (JobBriefInfo.JobStatus.DISABLED.name().equals(regCenter.get(jobNodePath.getServerNodePath(each)))) {
+            if (JobBriefInfo.JobStatus.DISABLED.name().equals(regCenter.getDirectly(jobNodePath.getServerNodePath(each)))) {
                 disabledServerCount++;
             }
         }
@@ -108,7 +108,7 @@ public final class JobStatisticsAPIImpl implements JobStatisticsAPI {
     private boolean isHasShardingFlag(final JobNodePath jobNodePath, final List<String> instances) {
         Set<String> shardingInstances = new HashSet<>();
         for (String each : regCenter.getChildrenKeys(jobNodePath.getShardingNodePath())) {
-            String instanceId = regCenter.get(jobNodePath.getShardingNodePath(each, "instance"));
+            String instanceId = regCenter.getDirectly(jobNodePath.getShardingNodePath(each, "instance"));
             if (null != instanceId && !instanceId.isEmpty()) {
                 shardingInstances.add(instanceId);
             }
@@ -147,7 +147,7 @@ public final class JobStatisticsAPIImpl implements JobStatisticsAPI {
     
     private JobBriefInfo.JobStatus getJobStatusByJobNameAndIp(final String jobName, final String ip) {
         JobNodePath jobNodePath = new JobNodePath(jobName);
-        String status = regCenter.get(jobNodePath.getServerNodePath(ip));
+        String status = regCenter.getDirectly(jobNodePath.getServerNodePath(ip));
         if ("DISABLED".equalsIgnoreCase(status)) {
             return JobBriefInfo.JobStatus.DISABLED;
         } else {
@@ -160,7 +160,11 @@ public final class JobStatisticsAPIImpl implements JobStatisticsAPI {
         JobNodePath jobNodePath = new JobNodePath(jobName);
         List<String> instances = regCenter.getChildrenKeys(jobNodePath.getInstancesNodePath());
         for (String each : instances) {
-            JobInstance jobInstance = YamlEngine.unmarshal(regCenter.get(jobNodePath.getInstanceNodePath(each)), JobInstance.class);
+            String instanceData = regCenter.getDirectly(jobNodePath.getInstanceNodePath(each));
+            if (null == instanceData) {
+                continue;
+            }
+            JobInstance jobInstance = YamlEngine.unmarshal(instanceData, JobInstance.class);
             if (ip.equals(jobInstance.getServerIp())) {
                 result++;
             }

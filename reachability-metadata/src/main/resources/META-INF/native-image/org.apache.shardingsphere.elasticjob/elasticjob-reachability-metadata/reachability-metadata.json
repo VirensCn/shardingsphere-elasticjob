@@ -1,0 +1,113 @@
+{
+  "reflection": [
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.tracing.yaml.YamlTracingConfiguration"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.kernel.tracing.yaml.YamlTracingConfiguration",
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.infra.yaml.representer.ElasticJobYamlRepresenter"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.tracing.rdb.yaml.YamlDataSourceConfiguration",
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.internal.schedule.LiteJob"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.kernel.internal.schedule.LiteJob",
+      "allPublicConstructors": true,
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.internal.config.JobConfigurationPOJO"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.kernel.internal.config.JobConfigurationPOJO",
+      "allPublicConstructors": true,
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ClassPathJobScanner"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ElasticJobScan",
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.internal.annotation.JobAnnotationBuilder"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.annotation.ElasticJobConfiguration",
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.internal.annotation.JobAnnotationBuilder"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.annotation.ElasticJobProp",
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ClassPathJobScanner"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ElasticJobScanRegistrar",
+      "allPublicConstructors": true,
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ClassPathJobScanner"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.spring.core.scanner.JobScannerConfiguration",
+      "allPublicConstructors": true,
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ClassPathJobScanner"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.spring.core.scanner.ClassPathJobScanner",
+      "allPublicConstructors": true,
+      "allPublicMethods": true
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.tracing.event.JobTracingEventBus"
+      },
+      "type": "org.apache.shardingsphere.elasticjob.spi.tracing.listener.TracingListener",
+      "methods": [
+        {
+          "name": "listen",
+          "parameterTypes": [
+            "org.apache.shardingsphere.elasticjob.spi.tracing.event.JobExecutionEvent"
+          ]
+        },
+        {
+          "name": "listen",
+          "parameterTypes": [
+            "org.apache.shardingsphere.elasticjob.spi.tracing.event.JobStatusTraceEvent"
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.kernel.executor.threadpool.ExecutorServiceReloader"
+      },
+      "glob": "META-INF/services/org.apache.shardingsphere.elasticjob.*"
+    },
+    {
+      "condition": {
+        "typeReached": "org.apache.shardingsphere.elasticjob.tracing.rdb.storage.sql.SQLPropertiesFactory"
+      },
+      "glob": "META-INF/sql/*.properties"
+    }
+  ]
+}

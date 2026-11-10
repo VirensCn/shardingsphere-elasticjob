@@ -59,7 +59,7 @@ public final class ServerStatisticsAPIImpl implements ServerStatisticsAPI {
             for (String each : regCenter.getChildrenKeys(jobNodePath.getServerNodePath())) {
                 servers.putIfAbsent(each, new ServerBriefInfo(each));
                 ServerBriefInfo serverInfo = servers.get(each);
-                if ("DISABLED".equalsIgnoreCase(regCenter.get(jobNodePath.getServerNodePath(each)))) {
+                if ("DISABLED".equalsIgnoreCase(regCenter.getDirectly(jobNodePath.getServerNodePath(each)))) {
                     serverInfo.getDisabledJobsNum().incrementAndGet();
                 }
                 serverInfo.getJobNames().add(jobName);
@@ -67,7 +67,11 @@ public final class ServerStatisticsAPIImpl implements ServerStatisticsAPI {
             }
             List<String> instances = regCenter.getChildrenKeys(jobNodePath.getInstancesNodePath());
             for (String each : instances) {
-                JobInstance jobInstance = YamlEngine.unmarshal(regCenter.get(jobNodePath.getInstanceNodePath(each)), JobInstance.class);
+                String instanceData = regCenter.getDirectly(jobNodePath.getInstanceNodePath(each));
+                if (null == instanceData) {
+                    continue;
+                }
+                JobInstance jobInstance = YamlEngine.unmarshal(instanceData, JobInstance.class);
                 if (null != jobInstance) {
                     ServerBriefInfo serverInfo = servers.get(jobInstance.getServerIp());
                     if (null != serverInfo) {

@@ -16,7 +16,7 @@ GraalVM Native Build Tools provides Maven Plugin and Gradle Plugin to simplify t
 ElasticJob requires the following or higher versions of `GraalVM CE` to build the GraalVM Native Image. Users can quickly switch JDKs through `SDKMAN!`. 
 This also applies to downstream distributions of `GraalVM CE` such as https://sdkman.io/jdks#graal, https://sdkman.io/jdks#nik and https://sdkman.io/jdks#mandrel.
 
-- GraalVM CE For JDK 22.0.2, corresponding to `22.0.2-graalce` of SDKMAN!
+- GraalVM CE For JDK 25.0.2, corresponding to `25.0.2-graalce` of SDKMAN!
 
 Users can still use old versions of GraalVM CE such as `21.0.2-graalce` on SDKMAN! to build ElasticJob's GraalVM Native Image product.
 ElasticJob does not set CI for GraalVM CE versions that have stopped maintenance.
@@ -28,6 +28,17 @@ ElasticJob does not set CI for GraalVM CE versions that have stopped maintenance
 Users need to actively use the GraalVM Reachability Metadata Central Repository.
 The following configuration is for reference. To configure additional Maven Profiles for the project, 
 refer to the documentation of GraalVM Native Build Tools.
+
+When the application classpath contains both the Nacos client and Logback, the shaded Netty classes used by
+`grpc-netty-shaded` initialize Logback loggers during the image build and the build fails with
+`ch.qos.logback.classic.Logger was found in the image heap`. Pass
+`--initialize-at-run-time=io.grpc.netty.shaded.io.netty` as a build argument to defer the whole shaded
+Netty tree to run time.
+
+The metadata repository bundled with `native-maven-plugin` 1.1.14 marks the Netty `5.0.0.Alpha2` metadata as the
+latest one for `io.netty:netty-common` and `io.netty:netty-transport`. Applying that metadata to Netty 4.1.x makes
+the gRPC client hang during protocol negotiation, so pin these artifacts, as well as `io.netty:netty-codec`,
+to the last Netty 4.x metadata through `metadataRepository`.
 
 ```xml
 <project>
@@ -44,8 +55,33 @@ refer to the documentation of GraalVM Native Build Tools.
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
-                <version>0.10.3</version>
+                <version>1.1.14</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <buildArgs>
+                        <arg>--initialize-at-run-time=io.grpc.netty.shaded.io.netty</arg>
+                    </buildArgs>
+                    <metadataRepository>
+                        <enabled>true</enabled>
+                        <dependencies>
+                            <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-common</artifactId>
+                                <metadataVersion>4.1.115.Final</metadataVersion>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-transport</artifactId>
+                                <metadataVersion>4.1.115.Final</metadataVersion>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-codec</artifactId>
+                                <metadataVersion>4.1.42.Final</metadataVersion>
+                            </dependency>
+                        </dependencies>
+                    </metadataRepository>
+                </configuration>
                 <executions>
                     <execution>
                         <id>build-native</id>
@@ -75,19 +111,32 @@ The following configuration is for reference. To configure additional Gradle Tas
 Due to the limitations of https://github.com/gradle/gradle/issues/17559, users need to introduce the Metadata Repository JSON file in the form of Maven dependencies.
 Refer to https://github.com/graalvm/native-build-tools/issues/572.
 
+When the application classpath contains both the Nacos client and Logback, add
+`--initialize-at-run-time=io.grpc.netty.shaded.io.netty` to the build arguments to defer the shaded Netty tree
+to run time. When the metadata repository search of the plugin is enabled instead of the bundled ZIP file, pin
+the Netty metadata versions through `moduleToConfigVersion` so that the Netty `5.0.0.Alpha2` metadata is not
+applied to Netty 4.1.x.
+
 ```groovy
 plugins {
-   id 'org.graalvm.buildtools.native' version '0.10.3'
+   id 'org.graalvm.buildtools.native' version '1.1.14'
 }
 
 dependencies {
    implementation 'org.apache.shardingsphere.elasticjob:elasticjob-bootstrap:${elasticjob.version}'
-   implementation(group: 'org.graalvm.buildtools', name: 'graalvm-reachability-metadata', version: '0.10.3', classifier: 'repository', ext: 'zip')
+   implementation(group: 'org.graalvm.buildtools', name: 'graalvm-reachability-metadata', version: '1.1.14', classifier: 'repository', ext: 'zip')
 }
 
 graalvmNative {
+   binaries.all {
+       buildArgs.add('--initialize-at-run-time=io.grpc.netty.shaded.io.netty')
+   }
    metadataRepository {
         enabled.set(false)
+        // When the metadata repository search is enabled instead, pin the Netty metadata versions:
+        // moduleToConfigVersion.put("io.netty:netty-common", "4.1.115.Final")
+        // moduleToConfigVersion.put("io.netty:netty-transport", "4.1.115.Final")
+        // moduleToConfigVersion.put("io.netty:netty-codec", "4.1.42.Final")
    }
 }
 ```
@@ -99,6 +148,8 @@ graalvmNative {
 Users need to actively use the GraalVM Reachability Metadata Central Repository.
 The following configuration is for reference. 
 To configure additional Maven Profiles for the project, refer to the documentation of GraalVM Native Build Tools.
+The `buildArgs` and `metadataRepository` configuration is required for the same reasons as described in the
+"Using ElasticJob's Java API" section.
 
 ```xml
 <project>
@@ -111,12 +162,12 @@ To configure additional Maven Profiles for the project, refer to the documentati
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <version>3.3.4</version>
+            <version>3.5.16</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>3.3.4</version>
+            <version>3.5.16</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -126,8 +177,33 @@ To configure additional Maven Profiles for the project, refer to the documentati
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
-                <version>0.10.3</version>
+                <version>1.1.14</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <buildArgs>
+                        <arg>--initialize-at-run-time=io.grpc.netty.shaded.io.netty</arg>
+                    </buildArgs>
+                    <metadataRepository>
+                        <enabled>true</enabled>
+                        <dependencies>
+                            <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-common</artifactId>
+                                <metadataVersion>4.1.115.Final</metadataVersion>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-transport</artifactId>
+                                <metadataVersion>4.1.115.Final</metadataVersion>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.netty</groupId>
+                                <artifactId>netty-codec</artifactId>
+                                <metadataVersion>4.1.42.Final</metadataVersion>
+                            </dependency>
+                        </dependencies>
+                    </metadataRepository>
+                </configuration>
                 <executions>
                     <execution>
                         <id>build-native</id>
@@ -148,7 +224,7 @@ To configure additional Maven Profiles for the project, refer to the documentati
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.3.4</version>
+                <version>3.5.16</version>
                 <executions>
                     <execution>
                         <id>process-test-aot</id>
@@ -169,12 +245,14 @@ Users need to actively use the GraalVM Reachability Metadata Central Repository.
 The following configuration is for reference. To configure additional Gradle Tasks for the project, refer to the documentation of GraalVM Native Build Tools.
 Due to the limitations of https://github.com/gradle/gradle/issues/17559, users need to introduce the Metadata Repository JSON file in the form of Maven dependencies.
 Refer to https://github.com/graalvm/native-build-tools/issues/572 .
+The `buildArgs` and `moduleToConfigVersion` configuration is required for the same reasons as described in the
+"Using ElasticJob's Java API" section.
 
 ```groovy
 plugins {
-    id 'org.springframework.boot' version '3.3.4'
-    id 'io.spring.dependency-management' version '1.1.6'
-    id 'org.graalvm.buildtools.native' version '0.10.3'
+    id 'org.springframework.boot' version '3.5.16'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.graalvm.buildtools.native' version '1.1.14'
 }
 
 dependencies {
@@ -182,12 +260,19 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.apache.shardingsphere.elasticjob:elasticjob-spring-boot-starter:${elasticjob.version}'
-    implementation(group: 'org.graalvm.buildtools', name: 'graalvm-reachability-metadata', version: '0.10.3', classifier: 'repository', ext: 'zip')
+    implementation(group: 'org.graalvm.buildtools', name: 'graalvm-reachability-metadata', version: '1.1.14', classifier: 'repository', ext: 'zip')
 }
 
 graalvmNative {
+    binaries.all {
+        buildArgs.add('--initialize-at-run-time=io.grpc.netty.shaded.io.netty')
+    }
     metadataRepository {
         enabled.set(false)
+        // When the metadata repository search is enabled instead, pin the Netty metadata versions:
+        // moduleToConfigVersion.put("io.netty:netty-common", "4.1.115.Final")
+        // moduleToConfigVersion.put("io.netty:netty-transport", "4.1.115.Final")
+        // moduleToConfigVersion.put("io.netty:netty-codec", "4.1.42.Final")
     }
 }
 ```
@@ -251,8 +336,8 @@ Contributors must install Docker Engine to execute the `testcontainers-java` rel
 sudo apt install unzip zip curl sed -y
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk install java 22.0.2-graalce
-sdk use java 22.0.2-graalce
+sdk install java 25.0.2-graalce
+sdk use java 25.0.2-graalce
 sudo apt-get install build-essential zlib1g-dev -y
 
 git clone git@github.com:apache/shardingsphere-elasticjob.git
@@ -287,5 +372,5 @@ contributors should place it in the classpath of the shardingsphere-test-native 
 ```bash
 git clone git@github.com:apache/shardingsphere.git
 cd ./shardingsphere/
-./mvnw -PgenerateMetadata -DskipNativeTests -e -T1C clean test native:metadata-copy
+./mvnw -PgenerateMetadata -e -T1C clean test native:metadata-copy
 ```

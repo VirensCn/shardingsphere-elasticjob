@@ -2,13 +2,19 @@
   "rules": [
     {"includeClasses": "**"},
 
+    {"excludeClasses": "android.**"},
+    {"excludeClasses": "ch.**"},
     {"excludeClasses": "com.**"},
+    {"excludeClasses": "io.**"},
     {"excludeClasses": "java.**"},
-    {"includeClasses": "java.util.Properties"},
     {"excludeClasses": "javax.**"},
+    {"excludeClasses": "jdk.**"},
+    {"excludeClasses": "kotlinx.**"},
     {"excludeClasses": "org.**"},
-    {"includeClasses": "org.apache.shardingsphere.elasticjob.**"},
     {"excludeClasses": "sun.**"},
+
+    {"includeClasses": "java.util.Properties"},
+    {"includeClasses": "org.apache.shardingsphere.elasticjob.**"},
 
     {"excludeClasses": "org.apache.shardingsphere.elasticjob.test.natived.**"}
   ],
