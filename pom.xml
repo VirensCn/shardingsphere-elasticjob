@@ -1078,22 +1078,22 @@
 
             <repositories>
                 <repository>
-                    <id>aliyun-maven</id>
-                    <name>Aliyun Staging Repository</name>
-                    <url>https://packages.aliyun.com/maven/repository/2241519-release-62oF4A/</url>
+                    <id>cnb-maven</id>
+                    <name>Virens Staging Repository</name>
+                    <url>https://maven.cnb.cool/virens/maven/-/packages/</url>
                 </repository>
             </repositories>
 
             <distributionManagement>
                 <repository>
-                    <id>aliyun-maven</id>
-                    <name>Aliyun Staging Repository</name>
-                    <url>https://packages.aliyun.com/maven/repository/2241519-release-62oF4A/</url>
+                    <id>cnb-maven</id>
+                    <name>Virens Staging Repository</name>
+                    <url>https://maven.cnb.cool/virens/maven/-/packages/</url>
                 </repository>
                 <snapshotRepository>
-                    <id>aliyun-maven</id>
-                    <name>Aliyun Staging Repository</name>
-                    <url>https://packages.aliyun.com/maven/repository/2241519-release-62oF4A/</url>
+                    <id>cnb-maven</id>
+                    <name>Virens Staging Repository</name>
+                    <url>https://maven.cnb.cool/virens/maven/-/packages/</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
